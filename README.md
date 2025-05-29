@@ -1,7 +1,7 @@
 Aluno: Vitor Henrique Camillo - RGM: 31382096
 
 Explicação do Projeto de Microsserviços
- Aqui irei explicar o projeto de microsserviços que simula um ecossistema digital de uma operação de extração e transporte de petróleo. O projeto é dividido em três partes, cada uma representando um serviço específico, e utiliza tecnologias como Node.js, Python, PHP, Redis e RabbitMQ para comunicação e cache.
+ O projeto de microsserviços que simula um ecossistema digital de uma operação de extração e transporte de petróleo. O projeto é dividido em três partes, cada uma representando um serviço específico, e utiliza tecnologias como Node.js, Python, PHP, Redis e RabbitMQ para comunicação e cache.
 
 Introdução
 o projeto simula um sistema de monitoramento e logística de uma operação de extração de petróleo, onde sensores coletam dados, eventos críticos são gerenciados e a logística de transporte é controlada. As APIs são desenvolvidas em diferentes linguagens para demonstrar a interoperabilidade entre serviços.
