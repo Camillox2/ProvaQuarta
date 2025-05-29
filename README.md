@@ -1,4 +1,4 @@
-Aluno: Vitor Henrique Camillo - RGM: 31382096
+Aluno: Vitor Henrique Camillo - RGM: 31382096 .
 
 Explicação do Projeto de Microsserviços
  O projeto de microsserviços que simula um ecossistema digital de uma operação de extração e transporte de petróleo. O projeto é dividido em três partes, cada uma representando um serviço específico, e utiliza tecnologias como Node.js, Python, PHP, Redis e RabbitMQ para comunicação e cache.
