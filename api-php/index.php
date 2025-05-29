@@ -1,14 +1,10 @@
 <?php
-// API 3 – PHP: Módulo de Logística
-// Implementação dos endpoints /equipments e /dispatch
-// Publicação de mensagens no RabbitMQ
 
 require_once __DIR__ . '/vendor/autoload.php';
 
 use PhpAmqpLib\Connection\AMQPStreamConnection;
 use PhpAmqpLib\Message\AMQPMessage;
 
-// Configuração do RabbitMQ
 define('RABBITMQ_HOST', 'localhost');
 define('RABBITMQ_PORT', 5672);
 define('RABBITMQ_USER', 'guest');
@@ -20,7 +16,6 @@ header('Content-Type: application/json');
 $method = $_SERVER['REQUEST_METHOD'];
 $path = $_SERVER['PATH_INFO'] ?? '/';
 
-// Roteamento simples
 if ($method === 'GET' && $path === '/equipments') {
     getEquipments();
 } elseif ($method === 'POST' && $path === '/dispatch') {
@@ -32,7 +27,6 @@ if ($method === 'GET' && $path === '/equipments') {
 
 function getEquipments()
 {
-    // Simula uma lista de equipamentos
     $equipments = [
         ['id' => 1, 'name' => 'Bomba Submersível XPTO', 'status' => 'disponível'],
         ['id' => 2, 'name' => 'Gerador Elétrico 500KVA', 'status' => 'em manutenção'],
@@ -62,13 +56,11 @@ function dispatchEquipment()
         $connection = new AMQPStreamConnection(RABBITMQ_HOST, RABBITMQ_PORT, RABBITMQ_USER, RABBITMQ_PASSWORD);
         $channel = $connection->channel();
 
-        // Declara a fila (se não existir, será criada)
-        // durable: true (a fila sobreviverá a reinícios do broker RabbitMQ)
         $channel->queue_declare(RABBITMQ_QUEUE, false, true, false, false);
 
         $msg = new AMQPMessage(
             $messageBody,
-            ['delivery_mode' => AMQPMessage::DELIVERY_MODE_PERSISTENT] // Mensagem persistente
+            ['delivery_mode' => AMQPMessage::DELIVERY_MODE_PERSISTENT]
         );
 
         $channel->basic_publish($msg, '', RABBITMQ_QUEUE);
@@ -76,7 +68,7 @@ function dispatchEquipment()
         $channel->close();
         $connection->close();
 
-        http_response_code(202); // Accepted
+        http_response_code(202);
         echo json_encode([
             'message' => 'Solicitação de dispacho de equipamento enviada para a fila.',
             'data_sent' => $input
@@ -89,7 +81,4 @@ function dispatchEquipment()
     }
 }
 
-// Para iniciar esta API (após instalar dependências com composer install):
-// Navegue até a pasta api-php e execute no terminal:
-// php -S localhost:8000 -t .
 ?>
