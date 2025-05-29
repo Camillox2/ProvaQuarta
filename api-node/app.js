@@ -1,7 +1,3 @@
-// API 1 – Node.js: Módulo de Sensores
-// Em breve: cache com Redis
-// Em breve: comunicação HTTP com a API Python
-
 const express = require("express");
 const redis = require("redis");
 const axios = require("axios");
@@ -9,12 +5,7 @@ const axios = require("axios");
 const app = express();
 const port = 3000;
 
-// Configuração do Cliente Redis
 const redisClient = redis.createClient({
-  // Se o Redis estiver rodando em um host/porta diferente ou com senha, configure aqui:
-  // host: 'meu-redis-host',
-  // port: 6379,
-  // password: 'minha-senha'
 });
 
 redisClient.on("error", (err) => console.log("Erro no Cliente Redis", err));
@@ -24,7 +15,6 @@ redisClient.on("error", (err) => console.log("Erro no Cliente Redis", err));
 
 app.use(express.json());
 
-// Endpoint: /sensor-data
 app.get("/sensor-data", async (req, res) => {
   const cacheKey = "sensor-data";
   try {
@@ -34,14 +24,12 @@ app.get("/sensor-data", async (req, res) => {
       return res.json(JSON.parse(cachedData));
     }
 
-    // Simula a obtenção de dados de sensores
     const sensorData = {
-      temperature: Math.random() * 100, // Temperatura em Celsius
-      pressure: Math.random() * 1000, // Pressão em kPa
+      temperature: Math.random() * 100,
+      pressure: Math.random() * 1000,
       timestamp: new Date().toISOString(),
     };
 
-    // Armazena no cache por 1 minuto (60 segundos)
     await redisClient.setEx(cacheKey, 60, JSON.stringify(sensorData));
     console.log("Novos dados do sensor gerados e cacheados.");
     res.json(sensorData);
@@ -51,7 +39,6 @@ app.get("/sensor-data", async (req, res) => {
   }
 });
 
-// Endpoint: /alert
 app.post("/alert", async (req, res) => {
   const alertData = req.body;
   if (!alertData || Object.keys(alertData).length === 0) {
@@ -61,9 +48,7 @@ app.post("/alert", async (req, res) => {
   console.log("Alerta recebido:", alertData);
 
   try {
-    // Envia o alerta para a API Python (Módulo de Eventos Críticos)
-    // Certifique-se de que a API Python esteja rodando e acessível em http://localhost:5000/event
-    const pythonApiUrl = "http://localhost:5000/event"; // Ajuste se a URL for diferente
+    const pythonApiUrl = "http://localhost:5000/event";
     await axios.post(pythonApiUrl, alertData);
     console.log("Alerta enviado para a API Python com sucesso.");
     res
@@ -75,7 +60,6 @@ app.post("/alert", async (req, res) => {
       });
   } catch (error) {
     console.error("Erro ao enviar alerta para a API Python:", error.message);
-    // Verifica se o erro é de conexão para dar uma mensagem mais específica
     if (error.code === "ECONNREFUSED") {
       res.status(503).send("Serviço da API de Eventos Críticos indisponível.");
     } else {
