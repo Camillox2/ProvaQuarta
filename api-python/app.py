@@ -6,19 +6,15 @@ from flask import Flask, request, jsonify
 
 app = Flask(__name__)
 
-# Lista em memória para armazenar eventos
 eventos = []
 
-# Configuração do Cliente Redis
 redis_client = redis.Redis(host='localhost', port=6379, db=0, decode_responses=True)
 CACHE_KEY_EVENTS = "critical_events"
-CACHE_EXPIRATION_SECONDS = 60 * 5 # Cache por 5 minutos
+CACHE_EXPIRATION_SECONDS = 60 * 5
 
-# Configuração do RabbitMQ
 RABBITMQ_HOST = 'localhost'
 RABBITMQ_QUEUE = 'logistica_urgente'
 
-# Endpoint: /event - Recebe um alerta da API Node.js
 @app.route('/event', methods=['POST'])
 def receive_event():
     try:
@@ -27,50 +23,42 @@ def receive_event():
             return jsonify({"error": "Corpo da requisição está vazio"}), 400
         
         print(f"Evento recebido da API Node.js: {event_data}")
-        eventos.append(event_data) # Salva na lista em memória
+        eventos.append(event_data)
         
-        # Atualiza o cache do Redis
         try:
             redis_client.setex(CACHE_KEY_EVENTS, CACHE_EXPIRATION_SECONDS, json.dumps(eventos))
             print("Cache de eventos atualizado no Redis.")
         except redis.exceptions.ConnectionError as e:
             print(f"Erro ao conectar com o Redis para cachear evento: {e}")
-            # Continua mesmo se o Redis falhar, mas loga o erro
-
         return jsonify({"message": "Evento recebido com sucesso", "data": event_data}), 201
     except Exception as e:
         print(f"Erro ao processar evento: {e}")
         return jsonify({"error": "Erro interno ao processar o evento"}), 500
 
-# Endpoint: /events - Retorna todos os eventos já recebidos
 @app.route('/events', methods=['GET'])
 def get_events():
     try:
-        # Tenta buscar do cache Redis primeiro
         cached_events = redis_client.get(CACHE_KEY_EVENTS)
         if cached_events:
             print("Eventos retornados do cache Redis.")
             return jsonify(json.loads(cached_events)), 200
         
-        # Se não estiver no cache, retorna da memória e atualiza o cache
         print("Eventos retornados da memória e cacheados no Redis.")
         redis_client.setex(CACHE_KEY_EVENTS, CACHE_EXPIRATION_SECONDS, json.dumps(eventos))
         return jsonify(eventos), 200
     except redis.exceptions.ConnectionError as e:
         print(f"Erro ao conectar com o Redis para buscar eventos: {e}")
-        # Se o Redis falhar, retorna da memória
         print("Eventos retornados da memória (Redis indisponível).")
         return jsonify(eventos), 200
     except Exception as e:
         print(f"Erro ao buscar eventos: {e}")
         return jsonify({"error": "Erro interno ao buscar eventos"}), 500
 
-# Função para consumir mensagens do RabbitMQ
 def consume_rabbitmq_messages():
     try:
         connection = pika.BlockingConnection(pika.ConnectionParameters(host=RABBITMQ_HOST))
         channel = connection.channel()
-        channel.queue_declare(queue=RABBITMQ_QUEUE, durable=True) # Garante que a fila exista e seja durável
+        channel.queue_declare(queue=RABBITMQ_QUEUE, durable=True)
 
         def callback(ch, method, properties, body):
             message = body.decode()
@@ -78,36 +66,30 @@ def consume_rabbitmq_messages():
             try:
                 event_data = json.loads(message)
                 eventos.append({"source": "rabbitmq", "data": event_data, "type": "logistics_dispatch"})
-                # Atualiza o cache do Redis
                 try:
                     redis_client.setex(CACHE_KEY_EVENTS, CACHE_EXPIRATION_SECONDS, json.dumps(eventos))
                     print("Cache de eventos atualizado no Redis após mensagem do RabbitMQ.")
                 except redis.exceptions.ConnectionError as e:
                     print(f"Erro ao conectar com o Redis para cachear evento do RabbitMQ: {e}")
-                ch.basic_ack(delivery_tag=method.delivery_tag) # Confirma o recebimento da mensagem
+                ch.basic_ack(delivery_tag=method.delivery_tag)
             except json.JSONDecodeError:
                 print(f"Erro ao decodificar JSON da mensagem: {message}")
-                ch.basic_nack(delivery_tag=method.delivery_tag, requeue=False) # Rejeita a mensagem (não recolocar na fila)
+                ch.basic_nack(delivery_tag=method.delivery_tag, requeue=False)
             except Exception as e:
                 print(f"Erro ao processar mensagem do RabbitMQ: {e}")
-                ch.basic_nack(delivery_tag=method.delivery_tag, requeue=True) # Rejeita e tenta reprocessar
+                ch.basic_nack(delivery_tag=method.delivery_tag, requeue=True)
 
-        channel.basic_qos(prefetch_count=1) # Processa uma mensagem por vez
+        channel.basic_qos(prefetch_count=1)
         channel.basic_consume(queue=RABBITMQ_QUEUE, on_message_callback=callback)
 
         print(f' [*] Aguardando mensagens na fila {RABBITMQ_QUEUE}. Para sair pressione CTRL+C')
         channel.start_consuming()
     except pika.exceptions.AMQPConnectionError as e:
         print(f"Erro ao conectar com RabbitMQ: {e}. Tentando reconectar em alguns segundos...")
-        # Adicionar lógica de retentativa se necessário, ou apenas logar e sair para o app Flask continuar rodando
-        # time.sleep(5)
-        # consume_rabbitmq_messages() # Cuidado com recursão infinita sem controle
     except Exception as e:
         print(f"Erro inesperado no consumidor RabbitMQ: {e}")
 
 if __name__ == '__main__':
-    # Inicia o consumidor RabbitMQ em uma thread separada
-    # para não bloquear o servidor Flask
     rabbitmq_thread = threading.Thread(target=consume_rabbitmq_messages, daemon=True)
     rabbitmq_thread.start()
 
