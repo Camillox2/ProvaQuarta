@@ -1,0 +1,17 @@
+{
+  "name": "api-sensores",
+  "version": "1.0.0",
+  "description": "API para simular sensores de poços de petróleo.",
+  "main": "app.js",
+  "scripts": {
+    "start": "node app.js"
+  },
+  "keywords": [
+    "api",
+    "sensores",
+    "nodejs"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {}
+}

@@ -1,0 +1,13 @@
+{
+  "name": "prova-quarta/api-php",
+  "description": "API de Logística para o projeto de microsserviços.",
+  "type": "project",
+  "require": {
+    "php-amqplib/php-amqplib": ">=3.0"
+  },
+  "authors": [
+    {
+      "name": "GitHub Copilot"
+    }
+  ]
+}
